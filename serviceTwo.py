@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import requests
 
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS to allow requests from your React frontend
 
 API_URL = "https://api.stlouisfed.org/fred/series/observations"
 API_KEY = "ad68f7b173ee40ece202d52b24f22f60"
