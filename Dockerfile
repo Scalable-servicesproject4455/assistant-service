@@ -2,9 +2,9 @@
 FROM python:3.10-slim
 
 WORKDIR /app
-COPY serviceTwo.py .
+COPY . .
 
-RUN pip install flask requests
+RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8080
-CMD ["python", "serviceTwo.py"]
+CMD ["python", "app.py"]
