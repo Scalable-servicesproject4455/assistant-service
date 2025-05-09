@@ -1,10 +1,10 @@
-# s2/Dockerfile
+# # s2/Dockerfile
 FROM python:3.10-slim
-
+ 
 WORKDIR /app
+ 
 COPY . .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-EXPOSE 8080
+ 
+RUN pip install flask pika mysql-connector-python
+ 
 CMD ["python", "app.py"]
