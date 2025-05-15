@@ -1,6 +1,9 @@
 from flask import Flask, jsonify
-import requests
+import pika
 import logging
+import socket
+import requests
+import threading
 
 app = Flask(__name__)
 
@@ -8,6 +11,49 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def start_consumer():
+    """
+    Starts a RabbitMQ consumer that listens on the 'hello' queue.
+    """
+    try:
+        try:
+            rabbitmq_ip = socket.gethostbyname('rabbitmq')
+            logger.debug(f"Resolved 'rabbitmq' to: {rabbitmq_ip}")
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_ip))
+        except socket.gaierror as e:
+            logger.error(f"Failed to resolve 'rabbitmq': {e}")
+            print("Error: Could not resolve hostname 'rabbitmq'. Exiting.")
+            return
+        except pika.exceptions.AMQPConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            print(f"Error connecting to RabbitMQ: {e}")
+            return
+
+        channel = connection.channel()
+        channel.queue_declare(queue='hello')
+        logger.debug("Queue 'hello' declared.")
+
+        def callback(ch, method, properties, body):
+            logger.info(f"[x] Received {body.decode()}")
+            print(f"[x] Received {body.decode()}")
+
+        channel.basic_consume(queue='hello', on_message_callback=callback, auto_ack=True)
+
+        logger.info('[*] Waiting for messages. To exit press CTRL+C')
+        print('[*] Waiting for messages. To exit press CTRL+C')
+        channel.start_consuming()
+
+    except Exception as e:
+        logger.error(f"An error occurred: {e}", exc_info=True)
+        print(f"An error occurred: {e}")
+    finally:
+        try:
+            connection.close()
+        except:
+            pass
+
 
 @app.route('/allData', methods=['GET'])
 def proxy_lights():
@@ -44,7 +90,6 @@ def proxy_lights():
             "details": str(e)
         }), 500
 
-    # Combine both responses
     combined_data = {
         "temperature_data": temperature_data,
         "light_data": light_data
@@ -53,4 +98,7 @@ def proxy_lights():
     return jsonify(combined_data), 200
 
 if __name__ == '__main__':
+    consumer_thread = threading.Thread(target=start_consumer, daemon=True)
+    consumer_thread.start()
+
     app.run(host='0.0.0.0', port=8080, debug=True)
