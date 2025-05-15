@@ -5,6 +5,6 @@ WORKDIR /app
  
 COPY . .
  
-RUN pip install flask pika mysql-connector-python
+RUN pip install flask pika mysql-connector-python requests
  
 CMD ["python", "app.py"]
